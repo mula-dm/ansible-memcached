@@ -1,0 +1,54 @@
+---
+# File: memcached.yml
+# Part: Memcached
+#
+# Description:
+# - Install Memcached from Ubuntu and Debian packages
+#
+# Parameters:
+#
+# Dependencies ([part:]type:filename):
+#/vars/*
+#/handlers/main.yml
+#/tasks/fpm.yml
+#
+# OS familly: Ubuntu >= 12.04/ Debian >=7
+
+- name: "Install Memcached and php extension."
+  when: 
+    ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'trusty'
+    or
+    ansible_distribution == 'Debian' and (ansible_distribution_major_version == "7" or ansible_distribution_major_version >= "8")
+  apt:
+    pkg: "{{ item }}"
+    update_cache: yes
+    cache_valid_time: 3600
+    state: latest
+  with_items:
+    - php5-memcached 
+    - memcached 
+  notify:
+  - Restart Memcached
+  - Restart PHP-FPM
+
+- name: "Ensure Memcached is started and enabled to start at boot."
+  when: 
+    ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'trusty'
+    or
+    ansible_distribution == 'Debian' and (ansible_distribution_major_version == "7" or ansible_distribution_major_version >= "8")
+  service: 
+    name=memcached
+    state=started
+    enabled=yes
+
+- name: "Copy memcached configuration in place."
+  when: 
+    ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'trusty'
+    or
+    ansible_distribution == 'Debian' and (ansible_distribution_major_version == "7" or ansible_distribution_major_version >= "8")
+  template:
+    src=memcached.conf.j2
+    dest=/etc/memcached.conf
+    owner=root group=root mode=644
+  notify:
+    - Restart Memcached
